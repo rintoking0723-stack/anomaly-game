@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Anomaly Generator (4 Levels)</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f3f3f1; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 500px; margin-bottom: 20px; border: 1px solid #ddd; }
+        h2 { margin: 0 0 15px 0; font-size: 0.9rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .intruder-input { border: 2px solid #d9534f; background: #fffafa; }
+        #gen-btn { background: #121212; color: white; border: none; padding: 20px; border-radius: 40px; font-size: 1.2rem; font-weight: bold; cursor: pointer; width: 100%; max-width: 500px; margin-top: 10px; transition: transform 0.1s; }
+        #gen-btn:active { transform: scale(0.95); }
+        #output-area { display: none; width: 100%; max-width: 500px; margin-top: 30px; }
+        textarea { width: 100%; height: 200px; padding: 15px; border-radius: 10px; border: 1px solid #ccc; font-family: monospace; font-size: 0.8rem; }
+        .instruction { background: #e7f3ff; padding: 15px; border-radius: 10px; margin-bottom: 10px; font-size: 0.9rem; border: 1px solid #b3d7ff; }
+    </style>
+</head>
+<body>
+
+    <h1 style="font-family:serif; font-size: 2.5rem; margin-bottom: 10px;">Anomaly Maker</h1>
+    <p style="margin-bottom: 30px; color: #666;">Create your 4-level custom puzzle game.</p>
+
+    <div id="setup-container"></div>
+
+    <button id="gen-btn" onclick="generateGame()">Generate Game Code</button>
+
+    <div id="output-area">
+        <div class="instruction">
+            <strong>Success!</strong> Copy the code below, paste it into a <strong>new file</strong> in Sublime Text, and save it as <code>my_game.html</code>.
+        </div>
+        <textarea id="code-box" readonly onclick="this.select()"></textarea>
+    </div>
+
+    <script>
+        // Build the 4 input forms
+        const container = document.getElementById('setup-container');
+        for (let i = 1; i <= 4; i++) {
+            container.innerHTML += `
+                <div class="card">
+                    <h2>Puzzle ${i}</h2>
+                    <input type="text" id="p${i}w1" placeholder="Category Word 1">
+                    <input type="text" id="p${i}w2" placeholder="Category Word 2">
+                    <input type="text" id="p${i}w3" placeholder="Category Word 3">
+                    <input type="text" id="p${i}w4" placeholder="Category Word 4">
+                    <input type="text" id="p${i}i" class="intruder-input" placeholder="The Intruder (Odd one out)">
+                    <input type="text" id="p${i}e" placeholder="Explanation (e.g. 'The others are fruits')">
+                </div>
+            `;
+        }
+
+        function generateGame() {
+            let gameData = [];
+            for (let i = 1; i <= 4; i++) {
+                let p = {
+                    words: [
+                        document.getElementById('p'+i+'w1').value,
+                        document.getElementById('p'+i+'w2').value,
+                        document.getElementById('p'+i+'w3').value,
+                        document.getElementById('p'+i+'w4').value,
+                        document.getElementById('p'+i+'i').value
+                    ],
+                    intruder: document.getElementById('p'+i+'i').value,
+                    explain: document.getElementById('p'+i+'e').value
+                };
+                if(!p.intruder || !p.words[0]) { alert("Please finish Puzzle " + i); return; }
+                gameData.push(p);
+            }
+
+            const gameCode = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Anomaly Game</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; text-align: center; padding: 50px 20px; background: #fff; color: #121212; overflow-x: hidden; }
+        .header { display: flex; justify-content: space-between; max-width: 500px; margin: 0 auto 30px; align-items: center; border-bottom: 2px solid #121212; padding-bottom: 15px; }
+        h1 { font-family: serif; margin: 0; font-size: 1.8rem; }
+        .strikes { font-size: 1.5rem; letter-spacing: 5px; }
+        .grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 500px; margin: 0 auto; }
+        
+        /* Bouncy Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            60% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        
+        button.word { 
+            background: #efefe6; border: none; padding: 20px 25px; font-size: 1.1rem; font-weight: 700; border-radius: 8px; cursor: pointer; text-transform: uppercase; min-width: 140px;
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+        }
+        button.word:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        button.word:active { transform: scale(0.95); }
+        
+        button.correct { background: #538d4e !important; color: white; transform: scale(1.05); }
+        .shake-error { animation: shake 0.4s ease-in-out; }
+        
+        #msg { margin-top: 30px; font-size: 1.2rem; font-weight: bold; min-height: 1.5em; }
+        #next-btn { display: none; background: #121212; color: white; border: none; padding: 15px 40px; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: transform 0.1s; }
+        #next-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Anomaly</h1>
+        <div class="strikes" id="s-box">● ● ●</div>
+    </div>
+    <p id="lvl-txt" style="color:#666; font-weight: bold;"></p>
+    <div class="grid" id="board"></div>
+    <div id="msg"></div>
+    <button id="next-btn" onclick="nextLevel()">Next Level</button>
+
+    <script>
+        const levels = ${JSON.stringify(gameData)};
+        let cur = 0, lives = 3, canPlay = true;
+
+        function updateStrikes() {
+            let h = "";
+            for(let i=0; i<3; i++) h += (i < lives) ? "● " : "<span style='color:#eee'>● </span>";
+            document.getElementById('s-box').innerHTML = h;
+        }
+
+        function loadLevel() {
+            canPlay = true;
+            document.getElementById('board').innerHTML = "";
+            document.getElementById('msg').textContent = "";
+            document.getElementById('next-btn').style.display = "none";
+            document.getElementById('lvl-txt').textContent = "PUZZLE " + (cur + 1) + " / 4";
+            updateStrikes();
+            
+            let p = levels[cur];
+            let shuf = [...p.words].sort(() => Math.random() - 0.5);
+            
+            shuf.forEach((w, index) => {
+                const b = document.createElement('button');
+                b.className = 'word'; 
+                b.textContent = w;
+                // Stagger the bounce-in animation
+                b.style.animationDelay = (index * 0.05) + 's';
+                
+                b.onclick = () => {
+                    if(!canPlay) return;
+                    if(w === p.intruder) {
+                        canPlay = false; 
+                        b.classList.add('correct');
+                        document.getElementById('msg').textContent = p.explain;
+                        document.getElementById('next-btn').style.display = "inline-block";
+                    } else {
+                        if(b.style.opacity === "0.3") return;
+                        
+                        // Apply the shake animation, then fade it out
+                        b.classList.add('shake-error');
+                        setTimeout(() => { b.classList.remove('shake-error'); }, 400);
+                        
+                        b.style.opacity = "0.3"; 
+                        lives--; 
+                        updateStrikes();
+                        
+                        if(lives <= 0) { 
+                            setTimeout(() => {
+                                alert("Game Over! Better luck next time."); 
+                                window.close();
+                                // Fallback if browser blocks window.close()
+                                document.body.innerHTML = "<h1 style='margin-top:100px;'>Game Over</h1><p style='color:#666;'>You can close this tab now.</p>";
+                            }, 500); // Wait half a second before ending so they see the final strike
+                        }
+                    }
+                };
+                document.getElementById('board').appendChild(b);
+            });
+        }
+
+        function nextLevel() {
+            cur++;
+            if(cur < 4) loadLevel();
+            else document.body.innerHTML = "<h1 style='margin-top:100px;'>PERFECT!</h1><p>You completed all 4 levels.</p><button onclick='location.reload()'>Play Again</button>";
+        }
+        loadLevel();
+    <\/script>
+</body>
+</html>`;
+
+            document.getElementById('code-box').value = gameCode;
+            document.getElementById('output-area').style.display = 'block';
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+    </script>
+</body>
+</html>
